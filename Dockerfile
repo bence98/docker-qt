@@ -1,7 +1,8 @@
 FROM ubuntu:20.04
 
-ENV QT_VERSION v5.15.0
-ENV QT_CREATOR_VERSION v4.3.1
+ENV QT_VERSION 5.15.0
+ENV QT_CREATOR_VERSION 4.3.1
+#ENV QT_BUILD_FROM_TAR 1
 
 # fix tzdata https://serverfault.com/a/1016972
 ARG DEBIAN_FRONTEND=noninteractive
@@ -16,6 +17,7 @@ RUN apt-get -y update && apt-get -y install qtbase5-dev \
 # Other useful tools
 RUN apt-get -y update && apt-get -y install tmux \
 	wget \
+	curl \
 	zip \
 	git \
 	vim
