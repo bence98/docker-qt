@@ -52,94 +52,93 @@ SCRIPT_DIR=`dirname $SCRIPT_PATH`
 [[ -z ${QT_CREATOR_WORKING_DIR+x} ]] && QT_CREATOR_WORKING_DIR="qt-creator"
 
 build_qt(){
-mkdir qt-build
-cd qt-build
-../configure $QT_CONFIGURE_OPTS -prefix "/usr/local"
-[ $? -ne 0 ] && >&2 echo "ERROR: ./configure failed" && exit 1
-make -j $QT_J_LEVEL
-[ $? -ne 0 ] && >&2 echo "ERROR: make failed" && exit 1
-make install
+    mkdir qt-build
+    cd qt-build
+    ../configure $QT_CONFIGURE_OPTS -prefix "/usr/local"
+    [ $? -ne 0 ] && >&2 echo "ERROR: ./configure failed" && exit 1
+    make -j $QT_J_LEVEL
+    [ $? -ne 0 ] && >&2 echo "ERROR: make failed" && exit 1
+    make install
 }
 
 build_qtcreator(){
-mkdir qt-creator-build
-cd qt-creator-build
-qmake -r ../qtcreator.pro
-[ $? -ne 0 ] && >&2 echo "ERROR: QT creator qmake failed" && exit 1
-make -j $QT_J_LEVEL
-[ $? -ne 0 ] && >&2 echo "ERROR: QT creator make failed" && exit 1
-make install
-[ $? -ne 0 ] && >&2 echo "ERROR: QT creator make install failed" && exit 1
+    mkdir qt-creator-build
+    cd qt-creator-build
+    qmake -r ../qtcreator.pro
+    [ $? -ne 0 ] && >&2 echo "ERROR: QT creator qmake failed" && exit 1
+    make -j $QT_J_LEVEL
+    [ $? -ne 0 ] && >&2 echo "ERROR: QT creator make failed" && exit 1
+    make install
+    [ $? -ne 0 ] && >&2 echo "ERROR: QT creator make install failed" && exit 1
 }
 
 build_qt_git(){
-# Enter the top build dir
-pushd $QT_TOP_DIR
+    # Enter the top build dir
+    pushd $QT_TOP_DIR
 
-if [ -n "$QT_VERSION" ]; then
-# Clone and build QT
-git clone --branch v$QT_VERSION $QT_GIT_URL $QT_WORKING_DIR
-[ $? -ne 0 ] && >&2 echo "ERROR: Unable to clone git repo $QT_GIT_URL" && exit 1
-pushd $QT_WORKING_DIR
-perl init-repository $QT_INIT_REPOSITORY_OPTS
-[ $? -ne 0 ] && >&2 echo "ERROR: init-repository failed" && exit 1
-build_qt
-[ $? -ne 0 ] && >&2 echo "ERROR: make install failed" && exit 1
-popd
-fi # [ -n "$QT_VERSION" ];
+    if [ -n "$QT_VERSION" ]; then
+        # Clone and build QT
+        git clone --branch v$QT_VERSION $QT_GIT_URL $QT_WORKING_DIR
+        [ $? -ne 0 ] && >&2 echo "ERROR: Unable to clone git repo $QT_GIT_URL" && exit 1
+        pushd $QT_WORKING_DIR
+            perl init-repository $QT_INIT_REPOSITORY_OPTS
+            [ $? -ne 0 ] && >&2 echo "ERROR: init-repository failed" && exit 1
+            build_qt
+            [ $? -ne 0 ] && >&2 echo "ERROR: make install failed" && exit 1
+        popd
+    fi # [ -n "$QT_VERSION" ];
 
-if [ -n "$QT_CREATOR_VERSION" ]; then
-# Clone and build QT Creator
-git clone --branch v$QT_CREATOR_VERSION --recursive $QT_CREATOR_GIT_URL $QT_CREATOR_WORKING_DIR
-[ $? -ne 0 ] && >&2 echo "ERROR: Unable to clone git repo $QT_CREATOR_GIT_URL" && exit 1
-pushd $QT_CREATOR_WORKING_DIR
-# Make sure no submodules have the latest version, since this could
-# cause build errors.
-git submodule update --init
-build_qtcreator
-popd
-fi # [ -n "$QT_CREATOR_VERSION" ];
+    if [ -n "$QT_CREATOR_VERSION" ]; then
+        # Clone and build QT Creator
+        git clone --branch v$QT_CREATOR_VERSION --recursive $QT_CREATOR_GIT_URL $QT_CREATOR_WORKING_DIR
+        [ $? -ne 0 ] && >&2 echo "ERROR: Unable to clone git repo $QT_CREATOR_GIT_URL" && exit 1
+        pushd $QT_CREATOR_WORKING_DIR
+            # Make sure no submodules have the latest version, since this could
+            # cause build errors.
+            git submodule update --init
+            build_qtcreator
+        popd
+    fi # [ -n "$QT_CREATOR_VERSION" ];
 
-popd #pushd $QT_TOP_DIR
+    popd #pushd $QT_TOP_DIR
 }
 
 build_qt_tar(){
+    if [ -n "$QT_VERSION" ]; then
+        # Download and build QT
+        QT_MINOR=$(cut -d . -f -2 <(echo $QT_VERSION))
+        mkdir $QT_WORKING_DIR
+        pushd $QT_WORKING_DIR
+            wget $QT_TAR_URL/$QT_MINOR/$QT_VERSION/single/qt-everywhere-opensource-src-$QT_VERSION.tar.xz
+            [ $? -ne 0 ] && >&2 echo "ERROR: Failed to download TAR!" && exit 1
+            curl $QT_TAR_URL/$QT_MINOR/$QT_VERSION/single/md5sums.txt | grep "tar\\.xz" | md5sum -c
+            [ $? -ne 0 ] && >&2 echo "ERROR: Non-matching md5sum (broken download?)" && exit 1
+            tar xf qt-everywhere-opensource-src-$QT_VERSION.tar.xz
+            pushd qt-everywhere-opensource-src-$QT_VERSION
+                build_qt
+            popd
+        popd # $QT_WORKING_DIR
+    fi # [ -n "$QT_VERSION" ];
 
-if [ -n "$QT_VERSION" ]; then
-# Download and build QT
-QT_MINOR=$(cut -d . -f -2 <(echo $QT_VERSION))
-mkdir $QT_WORKING_DIR
-pushd $QT_WORKING_DIR
-wget $QT_TAR_URL/$QT_MINOR/$QT_VERSION/single/qt-everywhere-opensource-src-$QT_VERSION.tar.xz
-[ $? -ne 0 ] && >&2 echo "ERROR: Failed to download TAR!" && exit 1
-curl $QT_TAR_URL/$QT_MINOR/$QT_VERSION/single/md5sums.txt | grep "tar\\.xz" | md5sum -c
-[ $? -ne 0 ] && >&2 echo "ERROR: Non-matching md5sum (broken download?)" && exit 1
-tar xf qt-everywhere-opensource-src-$QT_VERSION.tar.xz
-pushd qt-everywhere-opensource-src-$QT_VERSION
-build_qt
-popd
-popd # $QT_WORKING_DIR
-fi # [ -n "$QT_VERSION" ];
-
-if [ -n "$QT_CREATOR_VERSION" ]; then
-# Download and build QT Creator
-QT_CREATOR_MINOR=$(cut -d . -f -2 <(echo $QT_CREATOR_VERSION))
-mkdir $QT_CREATOR_WORKING_DIR
-pushd $QT_CREATOR_WORKING_DIR
-wget $QT_CREATOR_TAR_URL/$QT_CREATOR_MINOR/$QT_CREATOR_VERSION/qt-creator-opensource-src-$QT_CREATOR_VERSION.tar.xz
-[ $? -ne 0 ] && >&2 echo "ERROR: Failed to download TAR!" && exit 1
-curl $QT_CREATOR_TAR_URL/$QT_CREATOR_MINOR/$QT_CREATOR_VERSION/md5sums.txt | grep "tar\\.xz" | md5sum -c
-[ $? -ne 0 ] && >&2 echo "ERROR: Non-matching md5sum (broken download?)" && exit 1
-tar xf qt-creator-opensource-src-$QT_CREATOR_VERSION.tar.xz
-pushd qt-creator-opensource-src-$QT_CREATOR_VERSION
-build_qtcreator
-popd #qt-creator-opensource-src-$QT_CREATOR_VERSION
-popd # $QT_CREATOR_WORKING_DIR
-fi # [ -n "$QT_CREATOR_VERSION" ];
+    if [ -n "$QT_CREATOR_VERSION" ]; then
+        # Download and build QT Creator
+        QT_CREATOR_MINOR=$(cut -d . -f -2 <(echo $QT_CREATOR_VERSION))
+        mkdir $QT_CREATOR_WORKING_DIR
+        pushd $QT_CREATOR_WORKING_DIR
+            wget $QT_CREATOR_TAR_URL/$QT_CREATOR_MINOR/$QT_CREATOR_VERSION/qt-creator-opensource-src-$QT_CREATOR_VERSION.tar.xz
+            [ $? -ne 0 ] && >&2 echo "ERROR: Failed to download TAR!" && exit 1
+            curl $QT_CREATOR_TAR_URL/$QT_CREATOR_MINOR/$QT_CREATOR_VERSION/md5sums.txt | grep "tar\\.xz" | md5sum -c
+            [ $? -ne 0 ] && >&2 echo "ERROR: Non-matching md5sum (broken download?)" && exit 1
+            tar xf qt-creator-opensource-src-$QT_CREATOR_VERSION.tar.xz
+            pushd qt-creator-opensource-src-$QT_CREATOR_VERSION
+                build_qtcreator
+            popd #qt-creator-opensource-src-$QT_CREATOR_VERSION
+        popd # $QT_CREATOR_WORKING_DIR
+    fi # [ -n "$QT_CREATOR_VERSION" ];
 }
 
 if [ -n "$QT_BUILD_FROM_TAR" ]; then
-build_qt_tar
+    build_qt_tar
 else
-build_qt_git
+    build_qt_git
 fi
