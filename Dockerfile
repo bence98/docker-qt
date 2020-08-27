@@ -1,7 +1,11 @@
 FROM ubuntu:20.04
 
-ENV QT_VERSION v5.9.1
+ENV QT_VERSION v5.15.0
 ENV QT_CREATOR_VERSION v4.3.1
+
+# fix tzdata https://serverfault.com/a/1016972
+ARG DEBIAN_FRONTEND=noninteractive
+ENV TZ=Europe/Budapest
 
 # Build prerequisites
 RUN apt-get -y update && apt-get -y install qtbase5-dev \
