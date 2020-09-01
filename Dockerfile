@@ -1,7 +1,7 @@
 FROM ubuntu:20.04
 
 ENV QT_VERSION 5.15.0
-ENV QT_CREATOR_VERSION 4.3.1
+#ENV QT_CREATOR_VERSION 4.3.1
 ENV QT_BUILD_FROM_TAR 1
 
 # fix tzdata https://serverfault.com/a/1016972
